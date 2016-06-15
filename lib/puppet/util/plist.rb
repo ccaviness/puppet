@@ -36,7 +36,11 @@ module Puppet::Util::Plist
         convert_cfpropertylist_to_native_types(plist_obj)
       else
         plist_data = open_file_with_args(file_path, "r:UTF-8")
-        plist = parse_plist(plist_data, file_path)
+        begin
+          plist = parse_plist(plist_data, file_path)
+        rescue NoMethodError => e
+          Puppet.debug "Failed to parse #{file_path}"
+        end
         return plist if plist
 
         Puppet.debug "Plist #{file_path} ill-formatted, converting with plutil"
@@ -45,9 +49,10 @@ module Puppet::Util::Plist
                                                   {:failonfail => true, :combine => true})
           return parse_plist(plist)
         rescue Puppet::ExecutionFailure => detail
-          Puppet.warning("Cannot read file #{path}; Puppet is skipping it.\n" + "Details: #{detail}")
+          Puppet.warning("Cannot read file #{file_path}; Puppet is skipping it.\n" + "Details: #{detail}")
         end
       end
+      return nil
     end
 
     # Read plist text using the CFPropertyList gem.
